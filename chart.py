@@ -3,82 +3,59 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-def main():
-    # 1. Setup & Styling
-    # Use a clean, professional style
-    sns.set_style("whitegrid")
-    sns.set_context("talk") # "talk" context makes labels readable at 512x512
+# -----------------------------
+# 1. SEABORN & MATPLOTLIB STYLING
+# -----------------------------
+sns.set_style("whitegrid")  # professional look
+sns.set_context("talk", font_scale=1.1)  # presentation-ready font sizes
 
-    # 2. Generate Realistic Synthetic Data
-    # Context: Customer Engagement Metrics for Retail Client
-    np.random.seed(42)
-    n_customers = 200
+# -----------------------------
+# 2. SYNTHETIC BUSINESS DATA GENERATION
+# -----------------------------
+np.random.seed(42)
 
-    # Create base variables with realistic relationships
-    # Metric 1: Time on App (minutes)
-    time_on_app = np.random.normal(loc=15, scale=5, size=n_customers)
-    
-    # Metric 2: Pages Visited (correlated with Time)
-    pages_visited = (time_on_app * 0.8) + np.random.normal(0, 2, n_customers)
-    
-    # Metric 3: Purchase Value (correlated with Pages and Time)
-    purchase_value = (pages_visited * 5) + (time_on_app * 2) + np.random.normal(0, 10, n_customers)
-    
-    # Metric 4: Support Tickets (negative correlation with Satisfaction)
-    support_tickets = np.random.poisson(lam=1, size=n_customers)
-    
-    # Metric 5: Cust. Satisfaction (negative with Support, positive with Value)
-    satisfaction = 10 - (support_tickets * 2) + (purchase_value * 0.01) + np.random.normal(0, 1, n_customers)
-    
-    # Clip values to realistic ranges
-    time_on_app = np.maximum(time_on_app, 1)
-    pages_visited = np.maximum(pages_visited, 1)
-    purchase_value = np.maximum(purchase_value, 0)
-    satisfaction = np.clip(satisfaction, 1, 10)
+channels = ["Email", "Chat", "Phone", "Social Media"]
 
-    # Create DataFrame
-    df = pd.DataFrame({
-        'Time on App': time_on_app,
-        'Pages Visited': pages_visited,
-        'Purchase Value': purchase_value,
-        'Support Tickets': support_tickets,
-        'Satisfaction': satisfaction
-    })
+# realistic response time distributions (in minutes)
+data = {
+    "Channel": np.repeat(channels, 300),  # 300 observations per channel
+    "Response_Time": np.concatenate([
+        np.random.normal(loc=35, scale=12, size=300),   # Email: slower
+        np.random.normal(loc=5, scale=3, size=300),     # Chat: fastest
+        np.random.normal(loc=15, scale=5, size=300),    # Phone
+        np.random.normal(loc=25, scale=10, size=300),   # Social Media
+    ])
+}
 
-    # 3. Calculate Correlation Matrix
-    # This is the key step for this specific task type
-    corr_matrix = df.corr()
+df = pd.DataFrame(data)
 
-    # 4. Create Heatmap
-    # Requirement: 512x512 pixels -> 8 inches * 64 DPI
-    plt.figure(figsize=(8, 8))
-    
-    # Generate the Seaborn heatmap
-    # annot=True adds the numbers, fmt=".2f" formats them
-    # cmap='coolwarm' is standard for correlation (Red=Pos, Blue=Neg)
-    # vmin=-1, vmax=1 ensures the color scale is correct for correlations
-    ax = sns.heatmap(corr_matrix, 
-                     annot=True, 
-                     fmt=".2f", 
-                     cmap='coolwarm', 
-                     vmin=-1, vmax=1, 
-                     square=True,
-                     cbar_kws={"shrink": .8})
+# Clip negative values (minutes can't be negative)
+df["Response_Time"] = df["Response_Time"].clip(lower=0)
 
-    # 5. Professional Styling
-    plt.title('Customer Engagement Correlation Matrix', fontsize=16, pad=20)
-    
-    # Rotate labels for readability
-    plt.xticks(rotation=45, ha='right', fontsize=10)
-    plt.yticks(rotation=0, fontsize=10)
+# -----------------------------
+# 3. CREATE THE VIOLIN PLOT
+# -----------------------------
+plt.figure(figsize=(8, 8), dpi=64)   # 512x512 pixels
 
-    # Use tight_layout to fit labels INSIDE the figure without changing image size
-    plt.tight_layout()
+sns.violinplot(
+    data=df,
+    x="Channel",
+    y="Response_Time",
+    palette="Set2",
+    inner="quartile",
+    linewidth=1.2
+)
 
-    # 6. Save Chart
-    # Saving strictly as 512x512 pixels
-    plt.savefig('chart.png', dpi=64)
-    print("Success: Generated 'chart.png' (512x512 pixels)")
+# -----------------------------
+# 4. TITLES & LABELS
+# -----------------------------
+plt.title("Customer Support Response Time Distribution by Channel", pad=20)
+plt.xlabel("Support Channel")
+plt.ylabel("Response Time (Minutes)")
 
-if __name__ == "__main__":
-    main()
+# -----------------------------
+# 5. SAVE CHART AS PNG
+# -----------------------------
+plt.tight_layout()
+plt.savefig("chart.png", dpi=64, bbox_inches="tight")
+plt.close()
